@@ -33,4 +33,4 @@ command=$(jq -r '.tool_input.command // empty' <<< "$input")
 [[ "$command" != git\ * ]] && exit 0
 
 # ブロック: jj対応コマンドを提示
-suggest_deny 'jj管理プロジェクトです。gitではなくjjを使ってください。jj:jj-guide スキルを参照。'
+suggest_deny 'jj管理プロジェクトです。gitではなくjjを使ってください。jj:jj-guide スキルを参照。gitでしかできない操作は :;git cmd で回避可能。'
