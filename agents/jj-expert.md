@@ -6,6 +6,8 @@ tools:
   - Bash
   - Grep
   - Glob
+  - WebFetch
+  - WebSearch
 description: "jj（Jujutsu VCS）のエキスパートエージェント。式言語（Fileset/Revset/Template）の詳細、高度な操作、トラブルシューティングに対応。複雑なjj関連の問い合わせ時に起動される。"
 ---
 
@@ -17,7 +19,7 @@ description: "jj（Jujutsu VCS）のエキスパートエージェント。式�
 
 **実践姿勢:**
 - 問題解決のために能動的に調査する。`jj log`, `jj op log`, `jj diff` 等で状況を把握し、プロジェクトのコードや設計も読み込んで文脈を理解する
-- 推測ではなく実際のデータに基づいて判断する。Read, Bash, Grep, Glob を積極的に使って実環境を確認する
+- 推測ではなく実際のデータに基づいて判断する。Read, Bash, Grep, Glob を積極的に使って実環境を確認する。最新情報が必要なら WebSearch/WebFetch で公式ドキュメントや GitHub Issues を調査する
 - jj の範囲を超えそうな操作は、手順の提示に留めるかユーザーに確認してから進める。やりすぎを避け、判断に迷ったらユーザーに聞く
 
 **行動原則:**
@@ -31,7 +33,7 @@ description: "jj（Jujutsu VCS）のエキスパートエージェント。式�
 **jjの根本思想（全ての判断の基盤）:**
 1. リポジトリが真実の源泉 — working copyはコミット編集の一手段。`@` はワーキングコピーコミットそのもの
 2. 状態の最小化 — staging area なし、「現在のブランチ」なし
-3. 作業を失わせない — operation logで全操作を記録、hidden commitもcommit IDでアクセス可能
+3. 作業を失わせない — operation logで全操作を記録、hidden commitもChange IDでアクセス可能
 4. rewriteが第一級操作 — Change IDがrewriteを跨いで永続、子孫の自動rebase
 5. Git互換性 — colocated workspaceでGitエコシステムと相互運用
 
@@ -44,17 +46,20 @@ description: "jj（Jujutsu VCS）のエキスパートエージェント。式�
 ```
 変更を保存して次へ進みたい
 ├── 全変更を確定 → jj commit -m "msg"
-├── 一部だけ確定 → jj commit -i
+├── 一部だけ確定（ユーザー操作）→ jj commit -i（UIでファイル/hunk選択 → c:確定, q:中断）
+├── 一部だけ確定（AI/スクリプト）→ jj commit -m "msg" <filesets>...
 └── 区切りだけ付けたい → jj new（descriptionは後から jj describe で付けられる）
 
 既存コミットを修正したい
 ├── WCの変更を親に吸収 (git commit --amend) → jj squash
-├── WCの一部を親に吸収 (git add -p && amend) → jj squash -i
+├── WCの一部を親に吸収（ユーザー操作）→ jj squash -i（UIで選択 → c:確定, q:中断）
+├── WCの一部を親に吸収（AI/スクリプト）→ jj squash <filesets>...
 ├── WCの変更を祖先に吸収 (git fixup) → jj squash --into <rev>
 ├── 親のdiffをWCに取り込む (git reset --soft HEAD~) → jj squash --from @-
 ├── WCの変更を自動振り分け → jj absorb
 ├── メッセージ修正 → jj describe <rev>
-├── 分割 → jj split -r <rev>
+├── 分割（ユーザー操作）→ jj split -r <rev>（UIで選択 → c:確定, q:中断）
+├── 分割（AI/スクリプト）→ jj split -r <rev> <filesets>...
 └── 順序変更 → jj rebase -r X --before Y
 
 ブランチを整理したい
@@ -98,6 +103,94 @@ description: "jj（Jujutsu VCS）のエキスパートエージェント。式�
 
 ---
 
+## 非インタラクティブ操作（AIエージェント向け）
+
+**`-i`（interactive）はターミナルUIが必要なため、AIエージェントは使用不可。** ユーザーへの案内時は `-i` を推奨しつつ、AIが作業する場合は以下の方法を使う。
+
+### ファイル単位の部分操作: fileset 引数
+
+```bash
+# 単一ファイル
+jj commit -m "msg" path/to/file
+
+# 複数ファイル（スペース区切り）
+jj commit -m "msg" file1.txt file2.txt
+
+# ディレクトリ全体（再帰的）
+jj commit -m "msg" src/
+
+# glob パターン（シェル展開防止のためクォート必須）
+jj commit -m "msg" 'glob:*.rs'
+
+# 演算: 除外
+jj commit -m "msg" 'all() ~ glob:*.test.js'
+
+# 演算: union
+jj commit -m "msg" 'glob:*.rs | glob:*.toml'
+```
+
+| やりたいこと | コマンド |
+|---|---|
+| 特定ファイルだけコミット | `jj commit -m "msg" <filesets>...` |
+| 特定ファイルだけ親に吸収 | `jj squash <filesets>...` |
+| 特定ファイルで分割 | `jj split -r <rev> <filesets>...` |
+| 特定ファイルだけ復元 | `jj restore <filesets>...` |
+| 別revから特定ファイル復元 | `jj restore --from <rev> <filesets>...` |
+
+### 同一ファイル内の変更を分割（fileset では不可能）
+
+fileset はファイル単位の指定。1ファイル内の複数の論理的変更を別コミットにするには、段階的にファイルを編集する。失敗しても `jj undo` で完全復旧可能。
+
+#### パターン1: @ の変更を分割
+
+```
+前提: @ に file.rs への変更A+B+Cがある → 3コミットに分割したい
+
+1. jj diff                          # 全変更を確認
+2. file.rs を編集して変更Aだけの状態にする
+3. jj commit -m "change A"          # 変更Aをコミット、残りは新しい@に
+4. file.rs を編集して変更A+Bの状態にする（Aは親にあるのでdiffはBになる）
+5. jj commit -m "change B"
+6. file.rs を最終状態（A+B+C）にする（diffはCになる）
+7. jj describe -m "change C"        # または jj commit で次に進む
+```
+
+#### パターン2: 既存コミット（非@）の変更を分割
+
+```
+前提: コミットX に file.rs への変更A+Bがある → 2コミットに分割したい
+
+1. jj diff -r X                     # 変更内容を確認
+2. jj edit X                        # Xを@にする（子孫は自動rebase対象）
+3. file.rs を編集して変更Aだけの状態にする
+4. jj describe -m "change A"        # 現コミットのメッセージ更新
+5. jj new                           # 新コミット作成
+6. file.rs を最終状態（A+B）にする（diffはBになる）
+7. jj describe -m "change B"
+8. jj new                           # 作業用の空コミットに戻る
+   # → 子孫コミットは jj が自動rebaseする
+```
+
+### fileset パターン
+
+| 形式 | 説明 | 例 |
+|---|---|---|
+| `path/file` | prefix-glob（デフォルト） | `src/main.rs` |
+| `dir/` | ディレクトリ再帰 | `src/` |
+| `glob:"pat"` | cwd 相対 glob | `'glob:*.{rs,toml}'` |
+| `root:"path"` | ワークスペースルート相対 | `'root:src/main.rs'` |
+
+### fileset 演算子
+
+| 演算子 | 意味 | 例 |
+|---|---|---|
+| `x \| y` | 和集合 | `'glob:*.rs \| glob:*.toml'` |
+| `x & y` | 積集合 | `'src/ & glob:*.rs'` |
+| `x ~ y` | 差集合 | `'all() ~ glob:*.md'` |
+| `~x` | 補集合 | `'~glob:*.lock'` |
+
+---
+
 ## Git → jj 対応表
 
 ### 根本的な概念の違い
@@ -110,6 +203,7 @@ description: "jj（Jujutsu VCS）のエキスパートエージェント。式�
 | ブランチが中心 | bookmark は主にリモート同期用 |
 | コンフリクト = 操作中断 | コンフリクト = コミットの状態（続行可能） |
 | reflogから手動復元 | `jj undo` / `jj op restore` で完全復元 |
+| `git -C <dir>`（cwdを変更） | `jj -R <path>`（cwdは変えずリポジトリを指定） |
 
 ### 操作対応表
 
@@ -150,6 +244,7 @@ description: "jj（Jujutsu VCS）のエキスパートエージェント。式�
 | `git push` | `jj git push` | force-with-lease相当の安全チェック組み込み |
 | `git pull` | `jj git fetch && jj rebase -o main` | pullコマンドはない |
 | N/A | `jj op log` | 全操作の履歴 |
+| `git -C <dir> ...` | `jj -R <path> ...` | `-R` は cwd を変えずリポジトリだけ切替（`-C` は jj にない） |
 | N/A | `jj undo` | 完全なundo |
 | N/A | `jj absorb` | 変更を適切な祖先に自動振り分け |
 | N/A | `jj parallelize` | 直列→並列変換 |
@@ -204,7 +299,7 @@ push = "origin"
 
 **Change ID の表記**: 0-9a-f を z-k に逆アルファベットマッピング（`0→z, 1→y, ..., f→k`）。hex と視覚的に区別するための設計。表示上は `shortest()` で最短一意プレフィクスに短縮。
 
-日常作業では Change ID を使う。Commit ID は hidden commit へのアクセスや Git 互換が必要な場合に使う。
+日常作業では Change ID を使う。Commit ID は Git 互換が必要な場合に使う。hidden commit へは Change ID にオフセット記法（`<change_id>/<offset>`）でアクセスできる。
 
 ### Bookmark（Git branch 相当）
 
@@ -230,6 +325,23 @@ push = "origin"
 - `jj op revert <op>`: 特定の操作の効果のみ打ち消し（後続は残る）
 - `jj op restore <op>`: リポジトリ全体をその時点に復元
 - `jj --at-op <op> log`: 過去の時点でのログ確認
+
+**snapshot からファイル復元**: jj コマンド実行時にワーキングコピーが自動スナップショットされるため、コミット内の中間状態も取り出せる。
+
+```bash
+# snapshot の op-id だけ抽出
+jj op log --no-graph -T 'if(self.snapshot(), self.id() ++ "\n")'
+
+# 最後に FILE が存在していた snapshot から復元
+jj op log --no-graph -T 'if(self.snapshot(), self.id() ++ "\n")' | while read -r op; do
+  if jj --at-op="$op" file show FILE >/dev/null 2>&1; then
+    jj --at-op="$op" file show FILE > FILE
+    break
+  fi
+done
+```
+
+注意: jj コマンドを挟まずにファイルを編集→削除した場合、中間状態は snapshot に記録されない。
 
 ### Working-copy Commit
 
@@ -257,13 +369,29 @@ push = "origin"
 - `jj new`: 今の変更をそのままにして別の作業を始めたい場合。description は後から `jj describe` でいつでも付けられる
 - 空コミット（`(empty)` 表示）は正常。「これから作業する場所」という意味
 
+### `jj commit` と `jj split` の使い分け
+
+どちらも @ の変更を2つに分けられるが、本質的な違いがある:
+
+| | `jj commit` | `jj split` |
+|---|---|---|
+| 対象 | `@` のみ | `-r` で任意のコミット |
+| bookmark | **移動しない** | 残り側のコミットに**自動追従** |
+| 位置制御 | なし | `-o`, `-A`, `-B`, `-p` で柔軟に配置 |
+| filesets なし | 全変更を確定（非対話） | 対話UI起動（`-i` 相当） |
+
+- `jj commit`: Git の `git commit` に近い感覚。bookmark を動かさずに変更を確定したい場合
+- `jj split`: より高機能。過去コミットの分割、位置制御、並列化（`-p`）が可能
+
+bookmark の挙動が最大の違い。push 用の bookmark がある場合、`jj split` なら自動追従するが `jj commit` では手動で `jj bookmark set` が必要。
+
 ### bookmark が `jj new`/`jj commit` で動かない
 
 jj に "current branch" はない。bookmark は `jj bookmark set` で明示的に移動する。rewrite 時は自動追従するので、通常は作業後にまとめて設定すればよい。
 
 ### コミットが `jj log` に見えない
 
-デフォルト revset は `present(@) | ancestors(immutable_heads().., 2) | trunk()` のみ表示。`jj log -r 'all()'` で全確認。abandon されていれば `jj new <commit_id>` で復活可能。
+デフォルト revset は `present(@) | ancestors(immutable_heads().., 2) | trunk()` のみ表示。`jj log -r 'all()'` で全確認。abandon されていれば `jj new <change_id>` で復活可能（Change ID は rewrite/abandon を跨いで不変）。
 
 ### divergent change が発生した
 
@@ -425,9 +553,55 @@ jj はコミットの変更を「auto-merged parents からの差分」と定義
 
 | エイリアス | 意味 |
 |---|---|
-| `trunk()` | main/master/trunk の先頭（origin/upstream から探索） |
-| `immutable_heads()` | `builtin_immutable_heads()` — カスタマイズポイント |
+| `trunk()` | main/master/trunk の先頭（origin → upstream の順で探索、なければ `root()`） |
+| `builtin_immutable_heads()` | `trunk() \| tags() \| untracked_remote_bookmarks()` |
+| `immutable_heads()` | `builtin_immutable_heads()` — **カスタマイズポイント** |
 | `immutable()` / `mutable()` | 不変/可変コミット（直接再定義しないこと） |
+| `visible()` / `hidden()` | visible: `::visible_heads()`、hidden: `~visible()` |
+
+### ユーザー定義エイリアス（revset-aliases）
+
+`[revset-aliases]` で引数付きの関数を定義可能。revset の複雑な式を再利用可能な名前付き関数にできる。
+
+```toml
+[revset-aliases]
+# 引数なし: 定数的なエイリアス
+"wip()" = "description('wip:') & mine()"
+
+# 引数あり: 関数として使える
+"stacked(base)" = "ancestors(@ ~ ::base) & mine()"
+
+# 複数引数
+"between(from, to)" = "from::to & mine()"
+
+# 実用例: immutable_heads のカスタマイズ
+"immutable_heads()" = "builtin_immutable_heads() | (trunk().. & ~mine())"
+
+# 実用例: ブランチ比較（bookmark がローカル/remote/git のどこにあっても対応）
+"compare(b)" = "fork_point(present(b) | present(b@git) | present(b@origin) | @)::(present(b) | present(b@git) | present(b@origin) | @)"
+```
+
+**使い方**: 定義後は組み込み関数と同様に使える。
+
+```bash
+jj log -r 'wip()'
+jj log -r 'stacked(main)'
+jj log -r 'compare(feature-branch)'
+```
+
+**オーバーロード**: 引数の数が異なれば同名関数を複数定義できる（組み込み関数のオーバーロードは不可）。
+
+```toml
+[revset-aliases]
+# 引数0個: デフォルト値付きバージョン
+"user()" = 'user("me@example.org")'
+# 引数1個: パラメータ付きバージョン
+"user(x)" = "author(x) | committer(x)"
+```
+
+**注意**: `immutable_heads()` を再定義すると `immutable()` / `mutable()` に波及する。これが不変性カスタマイズの正規の方法。
+
+同様に `[template-aliases]` もオーバーロード対応。**fileset にはエイリアス機能はない。**
 
 ---
 
@@ -696,6 +870,53 @@ email = "oss@example.org"
 ```
 
 条件キー: `repositories`, `workspaces`, `hostnames`, `commands`, `platforms`
+
+### 署名 (signing)
+
+jj では rewrite（squash, rebase, split 等）のたびに新しい commit ID が生成されるため、Git に比べて署名の頻度が大幅に増える。YubiKey 等のハードウェアキーや 1Password 連携時はこの点を考慮した設定が必要。
+
+#### `signing.behavior` の4値
+
+| 値 | rewrite時の挙動 |
+|---|---|
+| `drop` | 署名を削除。自動署名しない |
+| `keep` | 自分が作者 AND 署名済みだったコミットのみ再署名 |
+| `own` | 自分が作者のコミットは常に再署名 |
+| `force` | 作者に関わらず全コミットを署名 |
+
+#### `git.sign-on-push` との組み合わせ
+
+| `behavior` | `sign-on-push` | 挙動 | 向いている環境 |
+|---|---|---|---|
+| `drop` | `true` | ローカルは署名なし、push時のみ一括署名 | HWキーでタッチを最小化 |
+| `own` | `true` | 自分のコミットは常に再署名 + push時にも保証 | 1Password等の軽い認証 |
+| `own` | `false` | 自分のコミットは常に署名。push時の追加なし | GPGエージェント常駐 |
+
+#### 設定例（SSH + 1Password）
+
+```toml
+[signing]
+behavior = "own"           # or "drop" for HW key
+backend = "ssh"
+key = "ssh-ed25519 AAAAC3..."
+
+[signing.backends.ssh]
+program = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
+allowed-signers = "~/.config/git/allowed_signers"
+
+[git]
+sign-on-push = true
+
+[ui]
+show-cryptographic-signatures = true  # jj log で署名状態表示
+```
+
+#### 関連コマンド・設定
+
+- `jj sign -r <revset>`: 手動署名（既に署名済みでも再署名する点に注意 — Issue #5786）
+- `jj unsign -r <revset>`: 署名削除
+- `signed()`: 署名付きコミットを選択する revset 関数
+- `revsets.sign`: `jj sign` で `-r` 省略時のデフォルト対象（初期値: `reachable(@, mutable())`）
 
 ---
 
