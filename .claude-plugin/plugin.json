@@ -1,6 +1,6 @@
 {
-  "name": "jj-guard",
-  "description": "Prevents git misuse in jj-managed projects and provides jj expertise via skill and expert agent",
+  "name": "jj",
+  "description": "jj (Jujutsu VCS) support: git misuse prevention, daily operation guide, and expert agent",
   "version": "0.1.0",
   "author": {
     "name": "kawaz"
