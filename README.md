@@ -12,7 +12,7 @@ Hook（保護）→ Skill（ガイド）→ Agent（専門家）の3層で段階
 |---|---|---|
 | Hook | jj-guard | git 誤操作を実行前にブロック |
 | Skill | jj-guide | 基本知識と日常操作リファレンス |
-| Agent | jj-expert | 式言語の詳細・高度なトラブルシュート |
+| Agent | jj-expert | より網羅的な知識を備えたエージェント |
 
 ### プラグイン一体化の利点
 
