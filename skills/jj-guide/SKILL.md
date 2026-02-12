@@ -4,6 +4,31 @@ description: "jj（Jujutsu VCS）の基本知識と日常操作ガイド。jj管
 
 # jj ガイド
 
+## Git との根本的な違い
+
+| Git | jj |
+|---|---|
+| HEAD + staging + working tree の3層 | `@`（ワーキングコピーコミット）に統一 |
+| `git add` で明示的にステージ | 全変更を自動スナップショット（add不要） |
+| commit hash のみ | Change ID（安定・rewrite不変）+ Commit ID |
+| branch が中心 | bookmark は主にリモート同期用（自動移動しない） |
+| コンフリクト = 操作中断 | コンフリクト = コミットに記録されたデータ（続行可能） |
+| reflog から手動復元 | `jj undo` / `jj op restore` で完全復元 |
+
+### Change ID vs Commit ID
+
+| | Change ID | Commit ID |
+|---|---|---|
+| 表記 | k-z 文字（hex と視覚的に区別） | 通常の hex (0-9a-f) |
+| 永続性 | rewrite しても**不変** | rewrite で**新ID** |
+| 用途 | 日常作業（こちらを使う） | Git 互換が必要な場合 |
+
+### Bookmark（Git branch 相当）
+
+- **コミット作成時に自動移動しない**（Git branch との最大の違い）
+- コミットが rewrite されると自動追従。abandon されると bookmark も削除
+- 明示的に移動: `jj bookmark set <name> -r <rev>`
+
 ## 基本概念
 
 - 全変更が自動的に @ コミットに入るのが大前提（ステージング概念なし）
@@ -121,6 +146,36 @@ done
 
 注意: jjコマンドを挟まずにファイルを編集→削除した場合、中間状態はsnapshotに記録されない。
 
+## 基本ワークフロー
+
+### 新規作業の開始
+
+```bash
+jj new main -m "feat: add feature"   # mainから新コミット作成
+# ... 作業（変更は自動で@に記録される）...
+jj commit -m "feat: add feature"     # 確定して次の空コミットへ
+```
+
+### リモートとの同期
+
+```bash
+jj git fetch                          # リモートの変更を取得
+jj rebase -o main                     # 必要ならmain上にrebase
+jj git push                           # 送信
+```
+
+### 変更の修正
+
+```bash
+jj describe -m "new message"          # @のメッセージ変更
+jj squash                             # @の変更を親に吸収（amend相当）
+jj squash --into <rev>                # 特定の祖先に吸収（fixup相当）
+```
+
 ---
 
-> 式言語（Fileset/Revset/Template）の詳細や高度なトラブルシューティングは、`jj-expert` エージェントに問い合わせてください。
+> **以下の場合は `jj-expert` エージェントに問い合わせてください:**
+> - 式言語（Revset / Fileset / Template）の詳細な構築
+> - コンフリクト、divergence、bookmark conflict のトラブルシューティング
+> - 複雑な履歴操作（rebase戦略、split/absorb の最適化）
+> - 設定のカスタマイズや Git 連携の問題
