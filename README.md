@@ -54,6 +54,21 @@ Once installed, the plugin automatically:
 2. Provides jj command references when needed (via jj-guide skill)
 3. Offers expert assistance for advanced jj operations (via jj-expert agent)
 
+### Troubleshooting
+
+#### When you need to run git commands
+
+If you need to use Git features not yet supported by jj (submodules, lfs, etc.), use the `:;git` prefix:
+
+```bash
+:;git submodule update --init
+:;git lfs pull
+```
+
+#### jj-guide skill not found
+
+You can explicitly invoke the skill in Claude Code by typing `jj:jj-guide`.
+
 ### License
 
 MIT
