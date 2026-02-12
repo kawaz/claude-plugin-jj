@@ -21,7 +21,7 @@ Hook (Protection) → Skill (Guide) → Agent (Expert) provides progressive supp
 The hook, skill, and agent are designed to work together, enabling each component to rely on the others.
 
 - **jj-guard deny messages are minimal** — Instead of cramming command-specific alternatives into messages, it simply guides users to the skill. This centralizes information and reduces maintenance costs.
-- **jj-expert is a self-contained agent** — It runs in an independent context with comprehensive knowledge of expression languages (Fileset/Revset/Template) and advanced topics, without relying on external skills.
+- **jj-expert is an agent with more comprehensive jj knowledge** — Provides expert assistance for advanced operations and troubleshooting.
 
 ### Components
 
@@ -39,7 +39,7 @@ Provides basic jj concepts, Git→jj mapping table, and daily operation referenc
 
 #### jj-expert Agent
 
-A self-contained investigation specialist agent with comprehensive built-in knowledge of expression languages (Fileset/Revset/Template) and advanced operations. Runs in an independent context and is activated for complex inquiries and troubleshooting.
+An agent with more comprehensive jj knowledge. Activated for complex inquiries and troubleshooting.
 
 ### Installation
 
