@@ -37,7 +37,7 @@ Detects and blocks git command execution in jj-managed projects (where `.jj` dir
 
 #### jj-guide Skill
 
-Provides basic jj concepts, Git→jj mapping table, and daily operation reference. Also serves as knowledge補完 when commands are denied.
+Provides basic jj concepts, Git→jj mapping table, and daily operation reference. Also serves as knowledge supplement when commands are denied.
 
 #### jj-expert Agent
 
