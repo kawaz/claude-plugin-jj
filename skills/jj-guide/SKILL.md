@@ -11,6 +11,19 @@ description: "jj（Jujutsu VCS）の基本知識と日常操作ガイド。jj管
 - `jj new` — 新しい空コミットを作る
 - `jj edit` — 指定コミットを編集する ≒ git switch
 
+**例：**
+```bash
+# 編集中の変更は自動的に @ に記録される
+echo "content" > file.txt    # 変更は即座に @ に反映
+jj st                         # 変更を確認
+
+# 変更を確定して次に進む
+jj commit -m "Add file"       # @ の変更をコミット、新しい @ を作成
+
+# 新しいコミットを作って作業開始
+jj new -m "Next feature"      # 空コミットを作成して作業開始
+```
+
 ## Git → jj 対応表
 
 | Git | jj | 備考 |
@@ -63,6 +76,12 @@ description: "jj（Jujutsu VCS）の基本知識と日常操作ガイド。jj管
 `jj split -i` / `jj commit -i` — TUIでhunk選択 → EDITOR起動
 - `split` は2回description編集（`-m MSG`は1つ目に適用、2つ目は元descを維持）
 
+**例：**
+```bash
+jj commit -i              # TUIでhunkを選択してコミット（残りは新@へ）
+jj split -i               # 現在の変更を2つのコミットに分割
+```
+
 ### 非インタラクティブ
 ```bash
 jj commit -m "msg" foo bar           # 指定ファイルをコミット、残りは新@へ
@@ -92,6 +111,18 @@ jj squash --from A --into B  # AからBへ移動
 jj absorb                  # @の各hunkを最後にその行を変更した祖先へ自動分配
 ```
 
+**例：**
+```bash
+# 直前のコミットに変更を追加（git commit --amend相当）
+jj squash
+
+# 複数のコミットをまとめる
+jj squash --from <newer-commit> --into <older-commit>
+
+# 変更を適切な祖先コミットに自動分配
+jj absorb                 # 各行の変更履歴を辿って最適なコミットに吸収
+```
+
 ## 操作の取り消し
 
 ```bash
@@ -100,6 +131,17 @@ jj redo                    # undoの取り消し
 jj op restore OP_ID        # 特定操作時点にリポジトリ全体を戻す
 jj op log                  # 操作ログ
 jj op show -p              # 最新操作の詳細（パッチ付き）
+```
+
+**例：**
+```bash
+# コミットを間違えた場合
+jj commit -m "Wrong message"
+jj undo                   # 直前のコミットを取り消す
+
+# 複数の操作を一度に取り消す
+jj op log                 # 操作履歴を確認
+jj op restore xyz123      # 特定の時点に完全復元
 ```
 
 ## op log からファイル復元

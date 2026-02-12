@@ -4,5 +4,11 @@
   "version": "0.2.1",
   "author": {
     "name": "kawaz"
-  }
+  },
+  "homepage": "https://github.com/kawaz/claude-plugin-jj",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kawaz/claude-plugin-jj.git"
+  },
+  "license": "MIT"
 }
