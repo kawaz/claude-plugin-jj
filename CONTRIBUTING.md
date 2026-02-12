@@ -20,11 +20,15 @@ If you encounter any problems or have suggestions:
 We welcome pull requests! Please:
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/your-feature`)
+2. Create a feature branch
+   - Using jj: `jj new -m 'feature/your-feature'`
+   - Using git: `git checkout -b feature/your-feature`
 3. Make your changes following the guidelines below
 4. Test your changes thoroughly
 5. Commit with clear, descriptive messages
 6. Push to your fork and submit a pull request
+
+Note: Contributors can use either git or jj for their own workflow. The plugin itself focuses on helping users work with jj.
 
 ## Development Guidelines
 
