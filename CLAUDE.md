@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Claude Code用プラグイン。jj (Jujutsu VCS) 管理下のリポジトリでgit誤使用を防止し、jjの知識を提供する。
 
-インストール: `claude plugin add --from github:kawaz/claude-plugin-jj`
+インストール: `claude plugin marketplace add kawaz/claude-plugin-jj && claude plugin install jj@claude-plugin-jj`
 
 ## アーキテクチャ（3層構成）
 

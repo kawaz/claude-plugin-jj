@@ -44,7 +44,8 @@ An agent with more comprehensive jj knowledge. Activated for complex inquiries a
 ### Installation
 
 ```bash
-claude plugin add --from github:kawaz/claude-plugin-jj
+claude plugin marketplace add kawaz/claude-plugin-jj
+claude plugin install jj@claude-plugin-jj
 ```
 
 ### Usage

@@ -44,7 +44,8 @@ jj の基本概念、Git→jj 対応表、日常操作のリファレンスを�
 ### インストール
 
 ```bash
-claude plugin add --from github:kawaz/claude-plugin-jj
+claude plugin marketplace add kawaz/claude-plugin-jj
+claude plugin install jj@claude-plugin-jj
 ```
 
 ### 使い方

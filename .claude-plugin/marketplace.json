@@ -1,0 +1,27 @@
+{
+  "name": "claude-plugin-jj",
+  "owner": {
+    "name": "kawaz"
+  },
+  "metadata": {
+    "description": "jj (Jujutsu VCS) support for Claude Code: git misuse prevention, daily operation guide, and expert agent",
+    "version": "0.3.0"
+  },
+  "plugins": [
+    {
+      "name": "jj",
+      "description": "jj (Jujutsu VCS) support: git misuse prevention hook, daily operation guide skill, and expert agent for advanced jj operations.",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/jj-guide"
+      ],
+      "hooks": [
+        "./hooks"
+      ],
+      "agents": [
+        "./agents"
+      ]
+    }
+  ]
+}

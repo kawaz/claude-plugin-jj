@@ -1,7 +1,7 @@
 {
   "name": "jj",
   "description": "jj (Jujutsu VCS) support: git misuse prevention, daily operation guide, and expert agent",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "author": {
     "name": "kawaz"
   },
