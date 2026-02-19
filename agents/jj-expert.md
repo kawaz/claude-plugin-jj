@@ -416,6 +416,22 @@ jj はコミットの変更を「auto-merged parents からの差分」と定義
 
 `immutable()` や `mutable()` を直接再定義しても不変性は変わらない。`immutable_heads()` を変更すること。
 
+### ワークスペースの空コミットが abandon しても再生成される
+
+`jj workspace add` で作成したワークスペースは各々がワーキングコピーコミット（`@`）を持つ。このコミットを `jj abandon` しても、ワークスペースが存在する限り新しい空コミットが自動再生成される。
+
+**対処**: 先に `jj workspace forget <name>` でワークスペースを削除してからコミットを abandon する。
+
+**注意**: `jj workspace forget` を引数なしで実行すると **default ワークスペースが削除**され「No working copy」状態になる。復旧には `jj op restore <op>` が必要。
+
+### `empty()` を使った一括 abandon で root commit エラー
+
+`jj abandon 'empty() & description(exact:"")'` は root commit（`000000000000`）にもマッチし `The root commit is immutable` エラーになる。`~root()` で除外する:
+
+```bash
+jj abandon 'empty() & description(exact:"") & ~@ & ~root()'
+```
+
 ---
 
 ## よく使う revset パターン
@@ -435,13 +451,13 @@ jj はコミットの変更を「auto-merged parents からの差分」と定義
 
 ### シンボル
 
-| シンボル | 意味 |
-|---|---|
-| `@` | 現在の working-copy commit |
-| `<workspace>@` | 指定ワークスペースの working-copy commit |
-| `<name>@<remote>` | リモートトラッキング bookmark |
-| commit/change ID | ユニークプレフィクスで指定可能 |
-| `<change_id>/<offset>` | divergent/hidden commit のオフセット指定 |
+| シンボル | 意味 | 例 |
+|---|---|---|
+| `@` | 現在の working-copy commit | `jj log -r @` |
+| `<name>@` | 指定ワークスペースの WC commit（末尾が`@`） | `build@` |
+| `<name>@<remote>` | リモートトラッキング bookmark | `main@origin` |
+| commit/change ID | ユニークプレフィクスで指定可能 | `abc`, `zxkm` |
+| `<change_id>/<offset>` | divergent/hidden commit のオフセット指定 | `abc/0` |
 
 シンボル解決の優先順位: Tag → Bookmark → Git ref → Commit/Change ID
 

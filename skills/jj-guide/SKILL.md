@@ -62,6 +62,18 @@ jj new -m "Next feature"      # 空コミットを作成して作業開始
 | `jj diffedit` | diff editorでコミット内容を直接編集 |
 | `jj fix` | 設定済みフォーマッタを一括適用 |
 
+## ワークスペース
+
+```bash
+jj workspace list              # ワークスペース一覧
+jj workspace add --name NAME PATH  # 新規ワークスペース作成
+jj workspace forget NAME       # ワークスペース削除（引数なし=default削除なので注意）
+```
+
+- 各ワークスペースは独自のワーキングコピーコミット（`@`）を持つ
+- `name@` はワークスペース `name` のWCコミットを示す（`name@remote` のリモートbookmarkとは別）
+- ワークスペースが存在する限りWCコミットは `jj abandon` しても再生成される
+
 ## REVSET 基本表現
 
 | jj | Git相当 | 備考 |
