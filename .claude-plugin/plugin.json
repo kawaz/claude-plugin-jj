@@ -6,9 +6,6 @@
     "name": "kawaz"
   },
   "homepage": "https://github.com/kawaz/claude-plugin-jj",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/kawaz/claude-plugin-jj.git"
-  },
+  "repository": "https://github.com/kawaz/claude-plugin-jj",
   "license": "MIT"
 }
