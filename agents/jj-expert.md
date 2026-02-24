@@ -424,6 +424,19 @@ jj はコミットの変更を「auto-merged parents からの差分」と定義
 
 **注意**: `jj workspace forget` を引数なしで実行すると **default ワークスペースが削除**され「No working copy」状態になる。復旧には `jj op restore <op>` が必要。
 
+### ワークスペースのパス取得
+
+`jj workspace root --name <名前>` で任意のワークスペースのパスを取得できる。引数なしなら現在のワークスペースのパスが返る。
+
+`jj workspace list -T` のテンプレートではパスは取得できない（WorkspaceRef 型には `.name()` と `.target()` しかない）。全ワークスペースのパスを一覧するにはシェルで回す:
+
+```bash
+jj workspace list --no-pager -T 'name ++ "\n"' \
+  | while read name; do
+      echo "$name: $(jj workspace root --name "$name")"
+    done
+```
+
 ### `empty()` を使った一括 abandon で root commit エラー
 
 `jj abandon 'empty() & description(exact:"")'` は root commit（`000000000000`）にもマッチし `The root commit is immutable` エラーになる。`~root()` で除外する:
@@ -825,7 +838,7 @@ DiffStats: `.files()`, `.total_added()`, `.total_removed()`
 
 #### WorkspaceRef 型
 
-`.name()`, `.target()`
+`.name()`, `.target()` — パス（root）は取得不可。パス取得には `jj workspace root --name <名前>` を使う。
 
 #### Boolean / Integer 型
 
@@ -980,6 +993,7 @@ GIT_DIR=.jj/repo/store/git gh issue list
 | `jj debug reindex` | インデックス破損時の回復 |
 | `jj op abandon` | 古い operation 削除（ストレージ節約） |
 | `jj workspace add/update-stale` | 複数ワークスペース管理 |
+| `jj workspace root [--name <name>]` | ワークスペースのパス取得（引数なしで現在、`--name` で任意） |
 | `jj bisect run` | 二分探索 |
 
 ---

@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "jj (Jujutsu VCS) support for Claude Code: git misuse prevention, daily operation guide, and expert agent",
-    "version": "0.3.0"
+    "version": "0.3.1"
   },
   "plugins": [
     {
