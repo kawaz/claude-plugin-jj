@@ -424,6 +424,27 @@ jj はコミットの変更を「auto-merged parents からの差分」と定義
 
 **注意**: `jj workspace forget` を引数なしで実行すると **default ワークスペースが削除**され「No working copy」状態になる。復旧には `jj op restore <op>` が必要。
 
+### ディレクトリリネーム後に `workspace_store` が壊れる
+
+リポジトリやその上位ディレクトリのリネーム・移動により、ワークスペースのフルパスが変わると `jj workspace forget` 等で以下のエラーが出ることがある:
+
+```
+Internal error: Unexpected error from workspace store
+Caused by: failed to decode Protobuf message: invalid wire type value: 7
+```
+
+**原因**: `.jj/repo/workspace_store/index` が各ワークスペースのディレクトリをフルパスで記録している（Protobuf バイナリ）。リネームでパス長が変わると length フィールドと実データが不整合になり Protobuf パースが壊れる。
+
+**注意**: `jj workspace list` は `op_store` から読むため正常動作する。`workspace_store/index` を読むのは `forget`, `root` 等の一部コマンドのみ。
+
+**診断**:
+```bash
+strings .jj/repo/workspace_store/index
+# 旧ディレクトリ名が含まれていたら壊れている
+```
+
+**修復**: `workspace_store/index` を正しいパスで再構築する。フォーマットは単純な Protobuf で、`repeated Workspace { string name = 1; bytes path = 2; }` の構造。`jj workspace list` の出力から全ワークスペース名を取得し、正しいフルパスで index を書き直せばよい。修復後、不要なワークスペースは `jj workspace forget <name>` で削除。
+
 ### ワークスペースのパス取得
 
 `jj workspace root --name <名前>` で任意のワークスペースのパスを取得できる。引数なしなら現在のワークスペースのパスが返る。
