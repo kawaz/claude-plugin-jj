@@ -15,12 +15,6 @@
       "strict": false,
       "skills": [
         "./skills/jj-guide"
-      ],
-      "hooks": [
-        "./hooks"
-      ],
-      "agents": [
-        "./agents"
       ]
     }
   ]
